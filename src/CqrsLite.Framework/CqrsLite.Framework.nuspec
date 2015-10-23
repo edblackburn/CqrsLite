@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Mjo.CqrsLite</id>
+    <version>1.0.0</version>
+    <title>CqrsLite</title>
+    <authors>mjo</authors>
+    <projectUrl>https://github.com/jonesm13/CqrsLite</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A lightweight framework for CQRS-style applications.</description>
+    <copyright>Copyright 2015</copyright>
+    <tags>cqrs ddd</tags>
+  </metadata>
+</package>
