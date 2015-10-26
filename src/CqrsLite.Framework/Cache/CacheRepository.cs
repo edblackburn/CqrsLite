@@ -13,12 +13,13 @@ namespace CqrsLite.Framework.Cache
         readonly IEventStore _eventStore;
         readonly MemoryCache _cache;
         readonly Func<CacheItemPolicy> _policyFactory;
-        static readonly ConcurrentDictionary<string, object> _locks = new ConcurrentDictionary<string, object>();
+        static readonly ConcurrentDictionary<string, object> Locks = new ConcurrentDictionary<string, object>();
 
         public CacheRepository(IRepository repository, IEventStore eventStore)
         {
             if (repository == null)
                 throw new ArgumentNullException(nameof(repository));
+
             if (eventStore == null)
                 throw new ArgumentNullException(nameof(eventStore));
 
@@ -31,26 +32,28 @@ namespace CqrsLite.Framework.Cache
                 RemovedCallback = x =>
                 {
                     object o;
-                    _locks.TryRemove(x.CacheItem.Key, out o);
+                    Locks.TryRemove(x.CacheItem.Key, out o);
                 }
             };
         }
 
         public void Save<T>(T aggregate, int? expectedVersion = null) where T : AggregateRoot
         {
-            var idstring = aggregate.Id.ToString();
+            var idstring = GetIdString(aggregate);
+
             try
             {
-                lock (_locks.GetOrAdd(idstring, _ => new object()))
+                lock (Locks.GetOrAdd(idstring, _ => new object()))
                 {
-                    if (aggregate.Id != Guid.Empty && !IsTracked(aggregate.Id))
+                    if (aggregate.Id != Guid.Empty && !IsTracked(idstring))
                         _cache.Add(idstring, aggregate, _policyFactory.Invoke());
+
                     _repository.Save(aggregate, expectedVersion);
                 }
             }
             catch (Exception)
             {
-                lock (_locks.GetOrAdd(idstring, _ => new object()))
+                lock (Locks.GetOrAdd(idstring, _ => new object()))
                 {
                     _cache.Remove(idstring);
                 }
@@ -60,13 +63,14 @@ namespace CqrsLite.Framework.Cache
 
         public T Get<T>(Guid aggregateId) where T : AggregateRoot
         {
-            var idstring = aggregateId.ToString();
+            var idstring = GetIdString(typeof (T), aggregateId);
+
             try
             {
-                lock (_locks.GetOrAdd(idstring, _ => new object()))
+                lock (Locks.GetOrAdd(idstring, _ => new object()))
                 {
                     T aggregate;
-                    if (IsTracked(aggregateId))
+                    if (IsTracked(idstring))
                     {
                         aggregate = (T)_cache.Get(idstring);
                         var events = _eventStore.Get(typeof(T), aggregateId, aggregate.Version);
@@ -82,13 +86,13 @@ namespace CqrsLite.Framework.Cache
                     }
 
                     aggregate = _repository.Get<T>(aggregateId);
-                    _cache.Add(aggregateId.ToString(), aggregate, _policyFactory.Invoke());
+                    _cache.Add(idstring, aggregate, _policyFactory.Invoke());
                     return aggregate;
                 }
             }
             catch (Exception)
             {
-                lock (_locks.GetOrAdd(idstring, _ => new object()))
+                lock (Locks.GetOrAdd(idstring, _ => new object()))
                 {
                     _cache.Remove(idstring);
                 }
@@ -96,9 +100,19 @@ namespace CqrsLite.Framework.Cache
             }
         }
 
-        bool IsTracked(Guid id)
+        static string GetIdString(Type type, Guid aggregateId)
         {
-            return _cache.Contains(id.ToString());
+            return $"{type.FullName}-{aggregateId}";
+        }
+
+        static string GetIdString(AggregateRoot aggregate)
+        {
+            return GetIdString(aggregate.GetType(), aggregate.Id);
+        }
+
+        bool IsTracked(string aggregateIdString)
+        {
+            return _cache.Contains(aggregateIdString);
         }
     }
 }
