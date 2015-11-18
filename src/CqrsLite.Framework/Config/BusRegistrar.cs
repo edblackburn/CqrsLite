@@ -14,7 +14,7 @@ namespace CqrsLite.Framework.Config
 
         public BusRegistrar(IServiceLocator serviceLocator)
         {
-            if(serviceLocator == null)
+            if (serviceLocator == null)
                 throw new ArgumentNullException(nameof(serviceLocator));
 
             _serviceLocator = serviceLocator;
@@ -23,7 +23,7 @@ namespace CqrsLite.Framework.Config
         public void Register(params Type[] typesFromAssemblyContainingMessages)
         {
             var bus = _serviceLocator.GetService<IHandlerRegistrar>();
-            
+
             foreach (var typesFromAssemblyContainingMessage in typesFromAssemblyContainingMessages)
             {
                 var executorsAssembly = typesFromAssemblyContainingMessage.Assembly;
@@ -38,7 +38,8 @@ namespace CqrsLite.Framework.Config
             }
         }
 
-        void InvokeHandler(Type @interface, IHandlerRegistrar bus, Type executorType) {
+        void InvokeHandler(Type @interface, IHandlerRegistrar bus, Type executorType)
+        {
             var commandType = @interface.GetGenericArguments()[0];
 
             var registerExecutorMethod = bus
@@ -55,7 +56,7 @@ namespace CqrsLite.Framework.Config
                                                   dynamic handler = _serviceLocator.GetService(executorType);
                                                   handler.Handle(x);
                                               });
-            
+
             registerExecutorMethod.Invoke(bus, new object[] { del });
         }
 
@@ -64,7 +65,7 @@ namespace CqrsLite.Framework.Config
             return type
                 .GetInterfaces()
                 .Where(i => i.IsGenericType && ((i.GetGenericTypeDefinition() == typeof(ICommandHandler<>))
-												 || i.GetGenericTypeDefinition() == typeof(IEventHandler<>)));
+                                                 || i.GetGenericTypeDefinition() == typeof(IEventHandler<>)));
         }
 
     }

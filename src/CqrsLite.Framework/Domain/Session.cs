@@ -11,7 +11,7 @@ namespace CqrsLite.Framework.Domain
 
         public Session(IRepository repository)
         {
-            if(repository == null)
+            if (repository == null)
                 throw new ArgumentNullException(nameof(repository));
 
             _repository = repository;
@@ -96,7 +96,7 @@ namespace CqrsLite.Framework.Domain
             {
                 unchecked
                 {
-                    return ((_aggregateType?.GetHashCode() ?? 0)*397) ^ _aggregateId.GetHashCode();
+                    return ((_aggregateType?.GetHashCode() ?? 0) * 397) ^ _aggregateId.GetHashCode();
                 }
             }
         }
